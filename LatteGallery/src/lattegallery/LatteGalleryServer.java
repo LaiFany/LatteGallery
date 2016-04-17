@@ -278,10 +278,10 @@ public class LatteGalleryServer extends JFrame{
                 returnArtistListByAlive("alive", alive);
                 returnArtistListByAlive("priceRange", alive);
             }else if(operation.equals("getSoldArtwork")){
-                returnSoldArtworkList("title");
-                returnSoldArtworkList("datePurchased");
-                returnSoldArtworkList("dateSold");
-                returnSoldArtworkList("artist");
+//                returnSoldArtworkList("title");
+//                returnSoldArtworkList("datePurchased");
+//                returnSoldArtworkList("dateSold");
+//                returnSoldArtworkList("artist");
             }
           }
         }
