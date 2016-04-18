@@ -46,6 +46,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MenuEvent;
@@ -1790,6 +1792,21 @@ public class LatteGalleryClient extends JFrame{
         artistTabbedPane.addTab("Artist List", viewArtist);
         artistTabbedPane.addTab("Add Artist", addArtist);
         artistTabbedPane.addTab("Artist & Their Artworks", artistArtworks);
+        
+        artistTabbedPane.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                if(artistTabbedPane.getSelectedIndex() == 2){
+                    initializeArtistList();
+                }else if(artistTabbedPane.getSelectedIndex() == 0){
+                    if(showAliveArtist.isSelected()){
+                        refreshArtistList("Yes");
+                    }else if(showAllArtist.isSelected()){
+                        initializeArtistList();
+                    }
+                }
+                System.out.println("Tab: " + artistTabbedPane.getSelectedIndex());
+            }
+        });
         
         //add artwork tab
         artworkTabbedPane.setTabPlacement(SwingConstants.TOP);
