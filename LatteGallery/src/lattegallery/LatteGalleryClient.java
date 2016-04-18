@@ -617,7 +617,7 @@ public class LatteGalleryClient extends JFrame{
                                 warningDialog.setLocationRelativeTo(null);
                                 warningDialog.setVisible(true);
                             }else{
-                                customerOperations("insertCustomer", nameTF1.getText().trim(), phoneNoTF1.getText().trim(), addressTA1.getText().trim(), "", artistPrefCB1.getSelectedItem().toString().trim(), "");
+                                customerOperations("insertCustomer", nameTF1.getText().trim(), phoneNoTF1.getText().trim(), addressTA1.getText().trim(), "null", artistPrefCB1.getSelectedItem().toString().trim(), "");
                                 warningMessageLabel.setText("Added customer '" + nameTF1.getText().trim() + "'.");
                                 warningDialog.pack();
                                 warningDialog.setTitle("Message");

@@ -189,7 +189,7 @@ public class LatteGalleryServer extends JFrame{
                 String address = inputFromClient.readUTF();
                 String artPurchases = inputFromClient.readUTF();
                 String artistPref = inputFromClient.readUTF();
-                sqlOperations.insertCustomer(name, phoneNumber, address, artistPref);
+                sqlOperations.insertCustomer(name, phoneNumber, address, artPurchases, artistPref);
             }else if(operation.equals("updateCustomer")){
                 String name = inputFromClient.readUTF();
                 String phoneNumber = inputFromClient.readUTF();
@@ -522,11 +522,11 @@ public class LatteGalleryServer extends JFrame{
             }
         }
         
-        public static void insertCustomer(String name, String phoneNumber, String address, String artistPref){
+        public static void insertCustomer(String name, String phoneNumber, String address, String artPurchases, String artistPref){
             try{
                 s = connection.createStatement();
-                s.executeUpdate("INSERT INTO Customer(name, phoneNumber, address, artistPref) VALUES ('" + name + "', '" + phoneNumber + "', '" + address + "', '" + artistPref + "')");
-                jta.append("inserted customer name : " + name + ", phone no. : " + phoneNumber + ", address : " + address + ", artist Preference : " + artistPref + "\n");
+                s.executeUpdate("INSERT INTO Customer(name, phoneNumber, address, artPurchases, artistPref) VALUES ('" + name + "', '" + phoneNumber + "', '" + address + "', '" + artPurchases + "', '" + artistPref + "')");
+                jta.append("inserted customer name : " + name + ", phone no. : " + phoneNumber + ", address : " + address + ", art Purchases : " + artPurchases + ", artist Preference : " + artistPref + "\n");
             }catch(SQLException e){
                 Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
             }
