@@ -24,7 +24,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
@@ -105,6 +109,8 @@ public class LatteGalleryServer extends JFrame{
                             + "title varchar(255) NOT NULL,"
                             + "datePurchased varchar(100) NOT NULL,"
                             + "dateSold varchar(100) NOT NULL,"
+                            + "purchasePrice varchar(255) NOT NULL,"
+                            + "sellingPrice varchar(255) NOT NULL,"
                             + "artist varchar(255) NOT NULL,"
                             + "PRIMARY KEY(artworkID))");
                 }
@@ -203,21 +209,28 @@ public class LatteGalleryServer extends JFrame{
                 String title = inputFromClient.readUTF();
                 String datePurchased = inputFromClient.readUTF();
                 String dateSold = inputFromClient.readUTF();
+                String purchasePrice = inputFromClient.readUTF();
+                String sellingPrice = inputFromClient.readUTF();
                 String artist = inputFromClient.readUTF();
-                sqlOperations.insertArtwork(title, datePurchased, dateSold, artist);
+                sqlOperations.insertArtwork(title, datePurchased, dateSold, purchasePrice, sellingPrice, artist);
+                sqlOperations.updateArtistPriceRange(artist, purchasePrice);
             }else if(operation.equals("updateArtwork")){
                 String title = inputFromClient.readUTF();
                 String datePurchased = inputFromClient.readUTF();
                 String dateSold = inputFromClient.readUTF();
+                String purchasePrice = inputFromClient.readUTF();
+                String sellingPrice = inputFromClient.readUTF();
                 String artist = inputFromClient.readUTF();
                 String newTitle = inputFromClient.readUTF();
-                sqlOperations.updateArtwork(title, datePurchased, dateSold, artist, newTitle);
+                sqlOperations.updateArtwork(title, datePurchased, dateSold, purchasePrice, sellingPrice, artist, newTitle);
             }else if(operation.equals("deleteArtwork")){
                 String title = inputFromClient.readUTF();
                 String datePurchased = inputFromClient.readUTF();
                 String dateSold = inputFromClient.readUTF();
+                String purchasePrice = inputFromClient.readUTF();
+                String sellingPrice = inputFromClient.readUTF();
                 String artist = inputFromClient.readUTF();
-                sqlOperations.deleteArtwork(title, datePurchased, dateSold, artist);
+                sqlOperations.deleteArtwork(title, datePurchased, dateSold, purchasePrice, sellingPrice, artist);
             }else if(operation.equals("insertArtist")){
                 String name = inputFromClient.readUTF();
                 String specialty = inputFromClient.readUTF();
@@ -252,22 +265,28 @@ public class LatteGalleryServer extends JFrame{
                 returnList(operation, "title");
                 returnList(operation, "datePurchased");
                 returnList(operation, "dateSold");
+                returnList(operation, "purchasePrice");
+                returnList(operation, "sellingPrice");
                 returnList(operation, "artist");
             }else if(operation.equals("getArtworkByArtist")){
                 String artist = inputFromClient.readUTF();
                 returnArtworkList(artist, "title");
                 returnArtworkList(artist, "datePurchased");
                 returnArtworkList(artist, "dateSold");
+                returnArtworkList(artist, "purchasePrice");
+                returnArtworkList(artist, "sellingPrice");
             }else if(operation.equals("getAvailableArtwork")){
                 returnAvailableArtworkList("title");
                 returnAvailableArtworkList("datePurchased");
+                returnAvailableArtworkList("purchasePrice");
                 returnAvailableArtworkList("artist");
             }else if(operation.equals("purchaseArtwork")){
                 String name = inputFromClient.readUTF();
                 String artPurchases = inputFromClient.readUTF();
                 String title = inputFromClient.readUTF();
                 String dateSold = inputFromClient.readUTF();
-                sqlOperations.purchaseArtwork(name, artPurchases, title, dateSold);
+                String sellingPrice = inputFromClient.readUTF();
+                sqlOperations.purchaseArtwork(name, artPurchases, title, dateSold, sellingPrice);
             }else if(operation.equals("getCustomerByArtwork")){
                 String title = inputFromClient.readUTF();
                 returnCustomerByArtwork(title);
@@ -278,10 +297,16 @@ public class LatteGalleryServer extends JFrame{
                 returnArtistListByAlive("alive", alive);
                 returnArtistListByAlive("priceRange", alive);
             }else if(operation.equals("getSoldArtwork")){
-//                returnSoldArtworkList("title");
-//                returnSoldArtworkList("datePurchased");
-//                returnSoldArtworkList("dateSold");
-//                returnSoldArtworkList("artist");
+                returnSoldArtworkList("title");
+                returnSoldArtworkList("datePurchased");
+                returnSoldArtworkList("dateSold");
+                returnSoldArtworkList("purchasePrice");
+                returnSoldArtworkList("sellingPrice");
+                returnSoldArtworkList("artist");
+            }else if(operation.equals("refreshArtworkList")){
+                returnArtworkListBy3Months("title");
+                returnArtworkListBy3Months("datePurchased");
+                returnArtworkListBy3Months("artist");
             }
           }
         }
@@ -409,11 +434,67 @@ public class LatteGalleryServer extends JFrame{
           try{
                 ResultSet rs = s.executeQuery("SELECT * FROM Artwork ORDER BY artworkID DESC");
                 while(rs.next()){
-                    if(!rs.getString("dateSold").contains("null")){
-                        if(list.equals("")){
-                            list = rs.getString(col);
+                    String dateSold = rs.getString("dateSold");
+                    if(!dateSold.contains("null")){
+                        String result = "";
+                        if(col.equals("dateSold")){
+                            result = dateSold;
                         }else{
-                            list += "|" + rs.getString(col);
+                            result = rs.getString(col);
+                        }
+                        
+                        if(list.equals("")){
+                            list = result;
+                        }else{
+                            list += "|" + result;
+                        }
+                        System.out.println("test " + list);
+                    }else{
+                        System.out.println("something wrong " + col);
+                    }
+                    
+                    //System.out.println("dateSold ulti : " + rs.getString("dateSold"));
+                }
+                System.out.println("sending list to client");
+                outputToClient.writeUTF(list);
+                System.out.println("sent list to client");
+            }catch(SQLException e){
+              e.printStackTrace();
+            }catch (IOException ex) {
+              Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+      }
+      
+      public void returnArtworkListBy3Months(String col){
+          String list = "";
+          try{
+                ResultSet rs = s.executeQuery("SELECT * FROM Artwork ORDER BY artworkID DESC");
+                while(rs.next()){
+                    DateFormat df = new SimpleDateFormat("dd/MM/yyyy"); 
+                    String datePurchasedStr = rs.getString("datePurchased");
+                    String dateSold = rs.getString("dateSold");
+                    if(dateSold.equals("null")){
+                        try {
+                            Date datePurchased = df.parse(datePurchasedStr);
+                            Date currentDate = new Date(System.currentTimeMillis());
+                            long duration = currentDate.getTime() - datePurchased.getTime();
+                            long diffInHours = TimeUnit.MILLISECONDS.toHours(duration);
+                            if(diffInHours >= 2190){
+                                String result = "";
+                                if(col.equals("datePurchased")){
+                                    result = datePurchasedStr;
+                                }else{
+                                    result = rs.getString(col);
+                                }
+                                if(list.equals("")){
+                                    list = result;
+                                }else{
+                                    list += "|" + result;
+                                }
+                                System.out.println("returnArtworkListBy3Months " + result);
+                            }
+                        } catch (ParseException ex) {
+                            Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
                 }
@@ -451,11 +532,11 @@ public class LatteGalleryServer extends JFrame{
             }
         }
 
-        public static void insertArtwork(String title, String datePurchased, String dateSold, String artist){
+        public static void insertArtwork(String title, String datePurchased, String dateSold, String purchasePrice, String sellingPrice, String artist){
             try{
                 s = connection.createStatement();
-                s.executeUpdate("INSERT INTO Artwork(title, datePurchased, dateSold, artist) VALUES ('" + title + "', '" + datePurchased + "', '" + dateSold + "', '" + artist + "')");
-                jta.append("inserted artwork title : " + title + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", artist : " + artist + "\n");
+                s.executeUpdate("INSERT INTO Artwork(title, datePurchased, dateSold, purchasePrice, sellingPrice, artist) VALUES ('" + title + "', '" + datePurchased + "', '" + dateSold + "', '" + purchasePrice + "', '" + sellingPrice + "', '" + artist + "')");
+                jta.append("inserted artwork title : " + title + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", purchasePrice : " + purchasePrice + ", sellingPrice : '" + sellingPrice + "', artist : " + artist + "\n");
             }catch(SQLException e){
                 Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
             }
@@ -481,11 +562,11 @@ public class LatteGalleryServer extends JFrame{
             }
         }
         
-        public static void updateArtwork(String title, String datePurchased, String dateSold, String artist, String newTitle){
+        public static void updateArtwork(String title, String datePurchased, String dateSold, String purchasePrice, String sellingPrice, String artist, String newTitle){
             try{
                     s = connection.createStatement();
-                    s.executeUpdate("UPDATE Artwork SET title='" + newTitle + "', datePurchased='" + datePurchased + "', dateSold='" + dateSold + "', artist='" + artist + "' WHERE title='" + title + "'");
-                    jta.append("updated artwork title : " + newTitle + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", artist : " + artist + "\n");
+                    s.executeUpdate("UPDATE Artwork SET title='" + newTitle + "', datePurchased='" + datePurchased + "', dateSold='" + dateSold + "', purchasePrice='" + purchasePrice + "', sellingPrice='" + sellingPrice + "', artist='" + artist + "' WHERE title='" + title + "'");
+                    jta.append("updated artwork title : " + newTitle + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", purchasePrice : " + purchasePrice + ", sellingPrice : " + sellingPrice + ", artist : " + artist + "\n");
             }catch(SQLException e){
                 Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
             }
@@ -512,12 +593,11 @@ public class LatteGalleryServer extends JFrame{
             }
         }
         
-        public static void deleteArtwork(String title, String datePurchased, String dateSold, String artist){
+        public static void deleteArtwork(String title, String datePurchased, String dateSold, String purchasePrice, String sellingPrice, String artist){
             try{
                     s = connection.createStatement();
-                    //s.executeUpdate("DELETE FROM Artwork WHERE title='" + title + "', datePurchased='" + datePurchased + "', dateSold='" + dateSold + "', artistID='" + artistID + "'");
                     s.executeUpdate("DELETE FROM Artwork WHERE title='" + title + "'");
-                    jta.append("deleted artwork title : " + title + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", artist : " + artist + "\n");
+                    jta.append("deleted artwork title : " + title + ", datePurchased : " + datePurchased + ", dateSold : " + dateSold + ", purchasePrice : " + purchasePrice + ", artist : " + artist + "\n");
             }catch(SQLException e){
                 Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
             }
@@ -534,13 +614,46 @@ public class LatteGalleryServer extends JFrame{
             }
         }
         
-        public static void purchaseArtwork(String name, String artPurchases, String title, String dateSold){
+        public static void purchaseArtwork(String name, String artPurchases, String title, String dateSold, String sellingPrice){
             try{
                     s = connection.createStatement();
                     s.executeUpdate("UPDATE Customer SET artPurchases='" + artPurchases + "' WHERE name='" + name + "'");
                     jta.append("updated customer name : " + name + ", art purchases : " + artPurchases + "\n");
-                    s.executeUpdate("UPDATE Artwork SET dateSold='" + dateSold + "' WHERE title='" + title + "'");
-                    jta.append("updated artwork title : " + title + ", dateSold : " + dateSold + "\n");
+                    s.executeUpdate("UPDATE Artwork SET dateSold='" + dateSold + "', sellingPrice='" + sellingPrice + "' WHERE title='" + title + "'");
+                    jta.append("updated artwork title : " + title + ", dateSold : " + dateSold + ", sellingPrice : " + sellingPrice + "\n");
+            }catch(SQLException e){
+                Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
+            }
+        }
+        
+        public static void updateArtistPriceRange(String name, String purchasePrice){
+            String priceRange = "null";
+            try{
+                ResultSet rs = s.executeQuery("SELECT priceRange FROM Artist WHERE name='" + name + "'");
+                while(rs.next()){
+                    String priceRangeResult = rs.getString(1);
+                    if(!priceRangeResult.equals("null")){
+                        if(priceRangeResult.contains("-")){
+                            String[] temp = priceRangeResult.split("-");
+                            String lowest = temp[0].trim();
+                            String highest = temp[1].trim();
+                            if(Integer.parseInt(purchasePrice) < Integer.parseInt(lowest)){
+                                priceRange = purchasePrice + " - " + highest;
+                            }else if(Integer.parseInt(purchasePrice) > Integer.parseInt(highest)){
+                                priceRange = lowest + " - " + purchasePrice;
+                            }
+                        }
+                    }else{
+                        priceRange = purchasePrice + " - " + purchasePrice;
+                    }
+                }
+            }catch(SQLException e){
+                e.printStackTrace();
+            }
+            try{
+                    s = connection.createStatement();
+                    s.executeUpdate("UPDATE Artist SET priceRange='" + priceRange + "' WHERE name='" + name + "'");
+                    jta.append("updated artist name : " + name + ", priceRange : " + priceRange + "\n");
             }catch(SQLException e){
                 Logger.getLogger(LatteGalleryServer.class.getName()).log(Level.SEVERE, null, e);
             }

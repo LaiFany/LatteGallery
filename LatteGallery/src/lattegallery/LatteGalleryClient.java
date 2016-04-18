@@ -26,6 +26,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -106,16 +108,22 @@ public class LatteGalleryClient extends JFrame{
     static String[] datePurchasedArr;
     static String[] dateSoldArr;
     static String[] artistArr;
+    static String[] purchasePriceArr;
+    static String[] sellingPriceArr;
     
     //artwork by artist
     static String[] artistArtworkTitleArr;
     static String[] artistArtworkDatePurchasedArr;
     static String[] artistArtworkDateSoldArr;
+    static String[] artistArtworksPurchasePriceArr;
+    static String[] artistArtworksSellingPriceArr;
     
     //available artwork
     static String[] availableArtworkTitleArr;
     static String[] availableArtworkDatePurchasedArr;
     static String[] availableArtworkArtistArr;
+    static String[] availableArtworkPurchasePriceArr;
+    static String[] availableArtworkSellingPriceArr;
     
     //archive artwork
     static String[] archiveArtworkTitleArr;
@@ -123,6 +131,8 @@ public class LatteGalleryClient extends JFrame{
     static String[] archiveArtworkDateSoldArr;
     static String[] archiveArtworkArtistArr;
     static String[] archiveArtworkCustomerArr;
+    static String[] archiveArtworkPurchasePriceArr;
+    static String[] archiveArtworkSellingPriceArr;
     
     //dialog
     final JDialog warningDialog = new JDialog();
@@ -433,11 +443,58 @@ public class LatteGalleryClient extends JFrame{
         customerEdit.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               editCustomerDialog.setVisible(true);
-               editCustomerMessageLabel.setText("You are about to edit customer '" + customerListArr[customerNameList.getSelectedIndex()] + "'. Proceed?");
-               editCustomerDialog.pack();
-               editCustomerDialog.setTitle("Editing Customer");
-               editCustomerDialog.setLocationRelativeTo(null);
+               if(nameTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Name' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(phoneNoTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Phone Number' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(!phoneNoTF.getText().trim().matches(".*\\d+.*")){
+                   warningMessageLabel.setText("Invalid phone number format. Only numbers are allowed.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(addressTA.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Address' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(artistPrefCB.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select preferred artist.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else{
+                   for(int i = 0; i < customerListArr.length; i++){
+                       if(i != customerNameList.getSelectedIndex()){
+                           if(customerListArr[i].equals(nameTF.getText().trim())){
+                                warningMessageLabel.setText("The customer name " + "'" + nameTF.getText().trim() + "' is already registered. Please try another name.");
+                                warningDialog.pack();
+                                warningDialog.setTitle("Warning");
+                                warningDialog.setLocationRelativeTo(null);
+                                warningDialog.setVisible(true);
+                                break;
+                            }else if(i + 1 == customerListArr.length){
+                                editCustomerDialog.setVisible(true);
+                                editCustomerMessageLabel.setText("You are about to edit customer '" + customerListArr[customerNameList.getSelectedIndex()] + "'. Proceed?");
+                                editCustomerDialog.pack();
+                                editCustomerDialog.setTitle("Editing Customer");
+                                editCustomerDialog.setLocationRelativeTo(null);
+                            }
+                       }
+                        
+                    }
+                   
+               }
            }
         });
         
@@ -535,6 +592,12 @@ public class LatteGalleryClient extends JFrame{
                    warningDialog.setTitle("Warning");
                    warningDialog.setLocationRelativeTo(null);
                    warningDialog.setVisible(true);
+               }else if(artistPrefCB1.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select preferred artist.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
                }else{
                    for(int i = 0; i < customerListArr.length; i++){
                         if(customerListArr[i].equals(nameTF1.getText().trim())){
@@ -546,7 +609,7 @@ public class LatteGalleryClient extends JFrame{
                             break;
                         }else if(i + 1 == customerListArr.length){
                             if(!phoneNoTF1.getText().trim().matches(".*\\d+.*")){
-                                warningMessageLabel.setText("The customer name " + "'" + nameTF1.getText().trim() + "' is already registered. Please try another name.");
+                                warningMessageLabel.setText("Invalid phone number format. Only numbers are allowed.");
                                 warningDialog.pack();
                                 warningDialog.setTitle("Warning");
                                 warningDialog.setLocationRelativeTo(null);
@@ -601,6 +664,7 @@ public class LatteGalleryClient extends JFrame{
         final JRadioButton showAllArtist = new JRadioButton("Show All Artist");
         
         showAllArtist.setSelected(true);
+        priceRangeTF.setEnabled(false);
         
         JPanel artistNamePanel = new JPanel();
         JPanel specialtyPanel = new JPanel();
@@ -705,11 +769,45 @@ public class LatteGalleryClient extends JFrame{
         artistEdit.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               editArtistDialog.setVisible(true);
-               editArtistMessageLabel.setText("You are about to edit artist '" + artistListArr[artistNameList.getSelectedIndex()] + "'. Proceed?");
-               editArtistDialog.pack();
-               editArtistDialog.setTitle("Editing Artist");
-               editArtistDialog.setLocationRelativeTo(null);
+               if(artistNameTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Name' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(specialtyTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Specialty' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(aliveCB.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select 'Alive' status.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else{
+                   for(int i = 0; i < artistListArr.length; i++){
+                       if(i != artistNameList.getSelectedIndex()){
+                            if(artistListArr[i].equals(artistNameTF.getText().trim())){
+                                warningMessageLabel.setText("The artist name " + "'" + artistNameTF.getText().trim() + "' is already registered. Please try another name.");
+                                warningDialog.pack();
+                                warningDialog.setTitle("Warning");
+                                warningDialog.setLocationRelativeTo(null);
+                                warningDialog.setVisible(true);
+                                break;
+                            }else if(i + 1 == artistListArr.length){
+                                editArtistDialog.setVisible(true);
+                                editArtistMessageLabel.setText("You are about to edit artist '" + artistListArr[artistNameList.getSelectedIndex()] + "'. Proceed?");
+                                editArtistDialog.pack();
+                                editArtistDialog.setTitle("Editing Artist");
+                                editArtistDialog.setLocationRelativeTo(null);
+                            }
+                       }
+                    }
+                   
+               }
            }
         });
         
@@ -732,11 +830,9 @@ public class LatteGalleryClient extends JFrame{
         JLabel artistNameLabel1 = new JLabel("Name");
         JLabel specialtyLabel1 = new JLabel("Specialty");
         JLabel aliveLabel1 = new JLabel("Alive");
-//        JLabel priceRangeLabel1 = new JLabel("Price Range");
         
         final JTextField artistNameTF1 = new JTextField(50);
         final JTextField specialtyTF1 = new JTextField(50);
-//        final JTextField priceRangeTF1 = new JTextField(50);
         
         final JButton artistAdd = new JButton("Add");
         
@@ -746,7 +842,6 @@ public class LatteGalleryClient extends JFrame{
         JPanel artistNamePanel1 = new JPanel();
         JPanel specialtyPanel1 = new JPanel();
         JPanel alivePanel1 = new JPanel();
-//        JPanel priceRangePanel1 = new JPanel();
         JPanel addArtistEmptyPanel = new JPanel();
         JPanel addArtistEmptyPanel1 = new JPanel();
         
@@ -762,16 +857,12 @@ public class LatteGalleryClient extends JFrame{
         alivePanel1.add(aliveLabel1);
         alivePanel1.add(aliveCB1);
         
-//        priceRangePanel1.setLayout(new GridLayout(1, 2));
-//        priceRangePanel1.add(priceRangeLabel1);
-//        priceRangePanel1.add(priceRangeTF1);
         
         JPanel jp3 = new JPanel();
         jp3.setLayout(new GridLayout(6, 1, 10, 10));
         jp3.add(artistNamePanel1);
         jp3.add(specialtyPanel1);
         jp3.add(alivePanel1);
-//        jp3.add(priceRangePanel1);
         jp3.add(addArtistEmptyPanel);
         jp3.add(addArtistEmptyPanel1);
         jp3.add(artistAdd);
@@ -841,25 +932,32 @@ public class LatteGalleryClient extends JFrame{
         JLabel dateSoldLabel2 = new JLabel("Date Sold");
         JLabel artistLabel2 = new JLabel("Artist");
         JLabel artistArtworksCustomerLabel = new JLabel("Customer");
+        JLabel artistArtworksPurchasePriceLabel = new JLabel("Purchase Price (RM)");
+        JLabel artistArtworksSellingPriceLabel = new JLabel("Selling Price (RM)");
         
         final JTextField artworkTitleTF2 = new JTextField(50);
         final JTextField datePurchasedTF2 = new JTextField(50);
         final JTextField dateSoldTF2 = new JTextField(50);
         final JTextField artistTF2 = new JTextField(50);
         final JTextField artistArtworksCustomerTF = new JTextField(50);
+        final JTextField artistArtworksPurchasePriceTF = new JTextField(50);
+        final JTextField artistArtworksSellingPriceTF = new JTextField(50);
         
         artworkTitleTF2.setEnabled(false);
         datePurchasedTF2.setEnabled(false);
         dateSoldTF2.setEnabled(false);
         artistTF2.setEnabled(false);
         artistArtworksCustomerTF.setEnabled(false);
+        artistArtworksPurchasePriceTF.setEnabled(false);
+        artistArtworksSellingPriceTF.setEnabled(false);
         
         JPanel artworkTitlePanel2 = new JPanel();
         JPanel datePurchasedPanel2 = new JPanel();
         JPanel dateSoldPanel2 = new JPanel();
         JPanel artistPanel2 = new JPanel();
         JPanel artistArtworksCustomerPanel = new JPanel();
-        JPanel artistArtworksEmptyPanel = new JPanel();
+        JPanel artistArtworksPurchasePricePanel = new JPanel();
+        JPanel artistArtworksSellingPricePanel = new JPanel();
         
         artworkTitlePanel2.setLayout(new GridLayout(1, 2));
         artworkTitlePanel2.add(artworkTitleLabel2);
@@ -881,14 +979,23 @@ public class LatteGalleryClient extends JFrame{
         artistArtworksCustomerPanel.add(artistArtworksCustomerLabel);
         artistArtworksCustomerPanel.add(artistArtworksCustomerTF);
         
-        artistArtworksInfoPanel.setLayout(new GridLayout(6, 1, 10, 10));
+        artistArtworksPurchasePricePanel.setLayout(new GridLayout(1, 2));
+        artistArtworksPurchasePricePanel.add(artistArtworksPurchasePriceLabel);
+        artistArtworksPurchasePricePanel.add(artistArtworksPurchasePriceTF);
+        
+        artistArtworksSellingPricePanel.setLayout(new GridLayout(1, 2));
+        artistArtworksSellingPricePanel.add(artistArtworksSellingPriceLabel);
+        artistArtworksSellingPricePanel.add(artistArtworksSellingPriceTF);
+        
+        artistArtworksInfoPanel.setLayout(new GridLayout(7, 1, 10, 10));
         artistArtworksInfoPanel.add(artworkTitlePanel2);
         artistArtworksInfoPanel.add(datePurchasedPanel2);
         artistArtworksInfoPanel.add(dateSoldPanel2);
+        artistArtworksInfoPanel.add(artistArtworksPurchasePricePanel);
         artistArtworksInfoPanel.add(artistPanel2);
         artistArtworksInfoPanel.add(artistArtworksCustomerPanel);
-        artistArtworksInfoPanel.add(artistArtworksEmptyPanel);
-        
+        artistArtworksInfoPanel.add(artistArtworksSellingPricePanel);
+
         artistArtworks.setLayout(new GridLayout(1, 2));
         artistArtworks.add(jspPanel);
         artistArtworks.add(artistArtworksInfoPanel);
@@ -917,21 +1024,25 @@ public class LatteGalleryClient extends JFrame{
                         artworkTitleTF2.setText(artistArtworkTitleArr[artistArtworksArtworkNameList.getSelectedIndex()]);
                         datePurchasedTF2.setText(artistArtworkDatePurchasedArr[artistArtworksArtworkNameList.getSelectedIndex()]);
                         artistTF2.setText(artistListArr[artistArtworksArtistNameList.getSelectedIndex()]);
+                        artistArtworksPurchasePriceTF.setText(artistArtworksPurchasePriceArr[artistArtworksArtworkNameList.getSelectedIndex()]);
                         
                         if(artistArtworkDateSoldArr[artistArtworksArtworkNameList.getSelectedIndex()].equals("null")){
                             dateSoldTF2.setText("");
                             artistArtworksCustomerTF.setText("");
+                            artistArtworksSellingPriceTF.setText("");
                         }else{
                             dateSoldTF2.setText(artistArtworkDateSoldArr[artistArtworksArtworkNameList.getSelectedIndex()]);
                             String customer = "";
+                            String sellingPrice = "";
                             try{
                                 customer = customer3D[artistArtworksArtistNameList.getSelectedIndex()][artistArtworksArtworkNameList.getSelectedIndex()][0];
                                 System.out.println("customer : " + customer +"...");
                                 artistArtworksCustomerTF.setText(customer);
+                                
+                                artistArtworksSellingPriceTF.setText(artistArtworksSellingPriceArr[artistArtworksArtworkNameList.getSelectedIndex()]);
                             }catch(Exception e){
                                 
                             }
-                            
                         }
                         System.out.println(artistArtworksArtworkNameList.getSelectedIndex());
                     }
@@ -953,14 +1064,20 @@ public class LatteGalleryClient extends JFrame{
         JLabel artworkTitleLabel = new JLabel("Title");
         JLabel datePurchasedLabel = new JLabel("Date Purchased");
         JLabel dateSoldLabel = new JLabel("Date Sold");
+        JLabel purchasePriceLabel = new JLabel("Purchase Price (RM)");
+        JLabel sellingPriceLabel = new JLabel("Selling Price (RM)");
         JLabel artistLabel = new JLabel("Artist");
         
         final JTextField artworkTitleTF = new JTextField(50);
         final JTextField datePurchasedTF = new JTextField(50);
         final JTextField dateSoldTF = new JTextField(50);
+        final JTextField purchasePriceTF = new JTextField(50);
+        final JTextField sellingPriceTF = new JTextField(50);
         
         final JButton artworkEdit = new JButton("Edit");
         final JButton artworkDelete = new JButton("Delete");
+        
+        //dateSoldTF.setEnabled(false);
         
         artistCB.setSelectedIndex(-1);
         
@@ -969,7 +1086,8 @@ public class LatteGalleryClient extends JFrame{
         JPanel dateSoldPanel = new JPanel();
         JPanel artistPanel = new JPanel();
         JPanel artworkButtonPanel = new JPanel();
-        JPanel viewArtworkEmptyPanel = new JPanel();
+        JPanel purchasePricePanel = new JPanel();
+        JPanel sellingPricePanel = new JPanel();
         
         artworkTitlePanel.setLayout(new GridLayout(1, 2));
         artworkTitlePanel.add(artworkTitleLabel);
@@ -991,13 +1109,22 @@ public class LatteGalleryClient extends JFrame{
         artworkButtonPanel.add(artworkEdit);
         artworkButtonPanel.add(artworkDelete);
         
+        purchasePricePanel.setLayout(new GridLayout(1, 2));
+        purchasePricePanel.add(purchasePriceLabel);
+        purchasePricePanel.add(purchasePriceTF);
+        
+        sellingPricePanel.setLayout(new GridLayout(1, 2));
+        sellingPricePanel.add(sellingPriceLabel);
+        sellingPricePanel.add(sellingPriceTF);
+        
         JPanel jp4 = new JPanel();
-        jp4.setLayout(new GridLayout(6, 1, 10, 10));
+        jp4.setLayout(new GridLayout(7, 1, 10, 10));
         jp4.add(artworkTitlePanel);
         jp4.add(datePurchasedPanel);
         jp4.add(dateSoldPanel);
+        jp4.add(purchasePricePanel);
+        jp4.add(sellingPricePanel);
         jp4.add(artistPanel);
-        jp4.add(viewArtworkEmptyPanel);
         jp4.add(artworkButtonPanel);
         
         viewArtwork.add(jp4, BorderLayout.CENTER);
@@ -1016,7 +1143,12 @@ public class LatteGalleryClient extends JFrame{
                         }else{
                             dateSoldTF.setText(dateSoldArr[artworkTitleList.getSelectedIndex()]);
                         }
-                        
+                        purchasePriceTF.setText(purchasePriceArr[artworkTitleList.getSelectedIndex()]);
+                        if(sellingPriceArr[artworkTitleList.getSelectedIndex()].equals("null")){
+                            sellingPriceTF.setText("");
+                        }else{
+                            sellingPriceTF.setText(sellingPriceArr[artworkTitleList.getSelectedIndex()]);
+                        }
                         for(int i = 0; i < artistCB.getItemCount(); i++){
                             if(artistCB.getItemAt(i).toString().equals(artistArr[artworkTitleList.getSelectedIndex()])){
                                 artistCB.setSelectedIndex(i);
@@ -1034,11 +1166,55 @@ public class LatteGalleryClient extends JFrame{
         artworkEdit.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               editArtworkDialog.setVisible(true);
-               editArtworkMessageLabel.setText("You are about to edit artwork '" + artworkListArr[artworkTitleList.getSelectedIndex()] + "'. Proceed?");
-               editArtworkDialog.pack();
-               editArtworkDialog.setTitle("Editing Artwork");
-               editArtworkDialog.setLocationRelativeTo(null);
+               if(artworkTitleTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Title' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(datePurchasedTF.getText().trim().equals("")){
+                   warningMessageLabel.setText("Please fill up the 'Date Purchased' field.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(!validDate(datePurchasedTF.getText().trim())){
+                   warningMessageLabel.setText("Invalid date format. The format is 'dd/mm/yyyy'");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(!purchasePriceTF.getText().toString().matches("\\d+")){
+                   warningMessageLabel.setText("Invalid price format. Only numbers are allowed.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(artistCB.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select artist.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else{
+                   for(int i = 0; i < artworkListArr.length; i++){
+                        if(artworkListArr[i].equals(artworkTitleTF.getText().trim())){
+                            warningMessageLabel.setText("The artwork title " + "'" + artworkTitleTF.getText().trim() + "' is already registered. Please try another title.");
+                            warningDialog.pack();
+                            warningDialog.setTitle("Warning");
+                            warningDialog.setLocationRelativeTo(null);
+                            warningDialog.setVisible(true);
+                            break;
+                        }else if(i + 1 == artworkListArr.length){
+                            editArtworkDialog.setVisible(true);
+                            editArtworkMessageLabel.setText("You are about to edit artwork '" + artworkListArr[artworkTitleList.getSelectedIndex()] + "'. Proceed?");
+                            editArtworkDialog.pack();
+                            editArtworkDialog.setTitle("Editing Artwork");
+                            editArtworkDialog.setLocationRelativeTo(null);
+                        }
+                    }
+               }
+               
            }
         });
         
@@ -1060,18 +1236,18 @@ public class LatteGalleryClient extends JFrame{
         //info panel   
         JLabel artworkTitleLabel1 = new JLabel("Title");
         JLabel datePurchasedLabel1 = new JLabel("Date Purchased");
-//        JLabel dateSoldLabel1 = new JLabel("Date Sold");
+        JLabel purchasePriceLabel1 = new JLabel("Purchase Price (RM)");
         JLabel artistLabel1 = new JLabel("Artist");
         
         final JTextField artworkTitleTF1 = new JTextField(50);
-        final JTextField datePurchasedTF1 = new JTextField("dd/mm/yyyy");
-//        final JTextField dateSoldTF1 = new JTextField(50);
+        final JTextField datePurchasedTF1 = new JTextField(50);
+        final JTextField purchasePriceTF1 = new JTextField(50);
         
         final JButton artworkAdd = new JButton("Add");
         
         JPanel artworkTitlePanel1 = new JPanel();
         JPanel datePurchasedPanel1 = new JPanel();
-//        JPanel dateSoldPanel1 = new JPanel();
+        JPanel purchasePricePanel1 = new JPanel();
         JPanel artistPanel1 = new JPanel();
         JPanel addArtworkEmptyPanel = new JPanel();
         JPanel addArtworkEmptyPanel1 = new JPanel();
@@ -1084,9 +1260,9 @@ public class LatteGalleryClient extends JFrame{
         datePurchasedPanel1.add(datePurchasedLabel1);
         datePurchasedPanel1.add(datePurchasedTF1);
         
-//        dateSoldPanel1.setLayout(new GridLayout(1, 2));
-//        dateSoldPanel1.add(dateSoldLabel1);
-//        dateSoldPanel1.add(dateSoldTF1);
+        purchasePricePanel1.setLayout(new GridLayout(1, 2));
+        purchasePricePanel1.add(purchasePriceLabel1);
+        purchasePricePanel1.add(purchasePriceTF1);
         
         artistPanel1.setLayout(new GridLayout(1, 2));
         artistPanel1.add(artistLabel1);
@@ -1096,9 +1272,8 @@ public class LatteGalleryClient extends JFrame{
         jp5.setLayout(new GridLayout(6, 1, 10, 10));
         jp5.add(artworkTitlePanel1);
         jp5.add(datePurchasedPanel1);
-//        jp5.add(dateSoldPanel1);
+        jp5.add(purchasePricePanel1);
         jp5.add(artistPanel1);
-        jp5.add(addArtworkEmptyPanel);
         jp5.add(addArtworkEmptyPanel1);
         jp5.add(artworkAdd);
         
@@ -1122,11 +1297,23 @@ public class LatteGalleryClient extends JFrame{
                    warningDialog.setLocationRelativeTo(null);
                    warningDialog.setVisible(true);
                }else if(!validDate(datePurchasedTF1.getText().trim())){
-                    warningMessageLabel.setText("Invalid date format. The format is 'dd/mm/yyyy'");
-                    warningDialog.pack();
-                    warningDialog.setTitle("Warning");
-                    warningDialog.setLocationRelativeTo(null);
-                    warningDialog.setVisible(true);
+                   warningMessageLabel.setText("Invalid date format. The format is 'dd/mm/yyyy'");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(!purchasePriceTF1.getText().toString().matches("\\d+")){
+                   warningMessageLabel.setText("Invalid price format. Only numbers are allowed.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(artistCB1.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select artist.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
                }else{
                    for(int i = 0; i < artworkListArr.length; i++){
                         if(artworkListArr[i].equals(artworkTitleTF1.getText().trim())){
@@ -1139,10 +1326,7 @@ public class LatteGalleryClient extends JFrame{
                         }else if(i + 1 == artworkListArr.length){
                             System.out.println(artistCB1.getSelectedItem().toString().trim());
                             String dateSold = "null";
-//                            if(!dateSoldTF1.getText().trim().equals("")){
-//                                dateSold = dateSoldTF1.getText().trim();
-//                            }
-                            artworkOperations("insertArtwork", artworkTitleTF1.getText().trim(), datePurchasedTF1.getText().trim(), dateSold, artistCB1.getSelectedItem().toString().trim(), "");    
+                            artworkOperations("insertArtwork", artworkTitleTF1.getText().trim(), datePurchasedTF1.getText().trim(), dateSold, purchasePriceTF1.getText().trim(), "null", artistCB1.getSelectedItem().toString().trim(), "");    
                             warningMessageLabel.setText("Added artwork '" + artworkTitleTF1.getText().trim() + "'.");
                             warningDialog.pack();
                             warningDialog.setTitle("Message");
@@ -1172,16 +1356,26 @@ public class LatteGalleryClient extends JFrame{
         JLabel datePurchasedLabel3 = new JLabel("Date Purchased");
         JLabel artistLabel3 = new JLabel("Artist");
         JLabel customerLabel3 = new JLabel("Customer");
+        JLabel purchasePriceLabel3 = new JLabel("Purchase Price (RM)");
+        JLabel sellingPriceLabel3 = new JLabel("Selling Price (RM)");
         
         final JTextField artworkTitleTF3 = new JTextField(50);
         final JTextField datePurchasedTF3 = new JTextField(50);
         final JTextField artistTF3 = new JTextField(50);
+        final JTextField purchasePriceTF3 = new JTextField(50);
+        final JTextField sellingPriceTF3 = new JTextField(50);
+        
+        //toggle between show alive artist and all artist
+        final JRadioButton showOver3MonthsUnsoldArtwork = new JRadioButton("Unsold Artwork Over 3 Months");
+        final JRadioButton showAllUnsoldArtwork = new JRadioButton("All Unsold Artwork");
+        
+        showAllUnsoldArtwork.setSelected(true);
         
         artworkTitleTF3.setEnabled(false);
         datePurchasedTF3.setEnabled(false);
         artistTF3.setEnabled(false);
         
-        final JButton availableArtworkPurchase = new JButton("Purchase");
+        final JButton availableArtworkPurchase = new JButton("Purchase Artwork");
         
         customerCB.setSelectedIndex(-1);
         
@@ -1189,7 +1383,9 @@ public class LatteGalleryClient extends JFrame{
         JPanel datePurchasedPanel3 = new JPanel();
         JPanel artistPanel3 = new JPanel();
         JPanel customerPanel3 = new JPanel();
-        JPanel currentInventoryEmptyPanel = new JPanel();
+        JPanel purchasePricePanel3 = new JPanel();
+        JPanel sellingPricePanel3 = new JPanel();
+        JPanel currentInventoryRadioButtonPanel = new JPanel();
         
         artworkTitlePanel3.setLayout(new GridLayout(1, 2));
         artworkTitlePanel3.add(artworkTitleLabel3);
@@ -1207,13 +1403,27 @@ public class LatteGalleryClient extends JFrame{
         customerPanel3.add(customerLabel3);
         customerPanel3.add(customerCB);
         
+        purchasePricePanel3.setLayout(new GridLayout(1, 2));
+        purchasePricePanel3.add(purchasePriceLabel3);
+        purchasePricePanel3.add(purchasePriceTF3);
+        
+        sellingPricePanel3.setLayout(new GridLayout(1, 2));
+        sellingPricePanel3.add(sellingPriceLabel3);
+        sellingPricePanel3.add(sellingPriceTF3);
+        
+        currentInventoryRadioButtonPanel.setLayout(new GridLayout(1, 2));
+        currentInventoryRadioButtonPanel.add(showAllUnsoldArtwork);
+        currentInventoryRadioButtonPanel.add(showOver3MonthsUnsoldArtwork);
+        
         JPanel availableArtworkJP = new JPanel();
-        availableArtworkJP.setLayout(new GridLayout(6, 1, 10, 10));
+        availableArtworkJP.setLayout(new GridLayout(8, 1, 10, 10));
+        availableArtworkJP.add(currentInventoryRadioButtonPanel);
         availableArtworkJP.add(artworkTitlePanel3);
         availableArtworkJP.add(datePurchasedPanel3);
+        availableArtworkJP.add(purchasePricePanel3);
         availableArtworkJP.add(artistPanel3);
         availableArtworkJP.add(customerPanel3);
-        availableArtworkJP.add(currentInventoryEmptyPanel);
+        availableArtworkJP.add(sellingPricePanel3);
         availableArtworkJP.add(availableArtworkPurchase);
         
         currentInventory.add(availableArtworkJP, BorderLayout.CENTER);
@@ -1228,6 +1438,7 @@ public class LatteGalleryClient extends JFrame{
                         artworkTitleTF3.setText(availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()]);
                         datePurchasedTF3.setText(availableArtworkDatePurchasedArr[availableArtworkTitleList.getSelectedIndex()]);
                         artistTF3.setText(availableArtworkArtistArr[availableArtworkTitleList.getSelectedIndex()]);
+                        purchasePriceTF3.setText(availableArtworkPurchasePriceArr[availableArtworkTitleList.getSelectedIndex()]);
                         System.out.println(availableArtworkTitleList.getSelectedIndex());
                     }
                 }
@@ -1237,11 +1448,58 @@ public class LatteGalleryClient extends JFrame{
         availableArtworkPurchase.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               availableArtworkPurchaseDialog.setVisible(true);
-               availableArtworkPurchaseMessageLabel.setText("Customer '" + customerCB.getSelectedItem().toString() + "' will purchase artwork titled '" + availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()] + "'. Proceed?");
-               availableArtworkPurchaseDialog.pack();
-               availableArtworkPurchaseDialog.setTitle("Purchasing Artwork");
-               availableArtworkPurchaseDialog.setLocationRelativeTo(null);
+               if(customerCB.getSelectedIndex() == -1){
+                   warningMessageLabel.setText("Please select a customer.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else if(!sellingPriceTF3.getText().trim().matches(".*\\d+.*")){
+                   warningMessageLabel.setText("Invalid price format. Only numbers are allowed.");
+                   warningDialog.pack();
+                   warningDialog.setTitle("Warning");
+                   warningDialog.setLocationRelativeTo(null);
+                   warningDialog.setVisible(true);
+               }else{
+                   availableArtworkPurchaseDialog.setVisible(true);
+                    availableArtworkPurchaseMessageLabel.setText("Customer '" + customerCB.getSelectedItem().toString() + "' will purchase artwork titled '" + availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()] + "' for RM" + sellingPriceTF3.getText().trim() + ". Proceed?");
+                    availableArtworkPurchaseDialog.pack();
+                    availableArtworkPurchaseDialog.setTitle("Purchasing Artwork");
+                    availableArtworkPurchaseDialog.setLocationRelativeTo(null);
+               }
+           }
+        });
+        
+        //radio button action listener
+        showAllUnsoldArtwork.addActionListener(new ActionListener(){
+           @Override
+           public void actionPerformed(ActionEvent e){
+               showAllUnsoldArtwork.setSelected(true);
+               showOver3MonthsUnsoldArtwork.setSelected(false);
+               getAvailableArtwork();
+               artworkTitleTF3.setText("");
+               datePurchasedTF3.setText("");
+               artistTF3.setText("");
+               purchasePriceTF3.setText("");
+               sellingPriceTF3.setText("");
+               customerCB.setSelectedIndex(-1);
+               System.out.println("Clicked on all unsold artwork");
+           }
+        });
+        
+        showOver3MonthsUnsoldArtwork.addActionListener(new ActionListener(){
+           @Override
+           public void actionPerformed(ActionEvent e){
+               showOver3MonthsUnsoldArtwork.setSelected(true);
+               showAllUnsoldArtwork.setSelected(false);
+               refreshArtworkList();
+               artworkTitleTF3.setText("");
+               datePurchasedTF3.setText("");
+               artistTF3.setText("");
+               purchasePriceTF3.setText("");
+               sellingPriceTF3.setText("");
+               customerCB.setSelectedIndex(-1);
+               System.out.println("Clicked on 3 months unsold artwork");
            }
         });
         
@@ -1261,23 +1519,32 @@ public class LatteGalleryClient extends JFrame{
         JLabel dateSoldLabel4 = new JLabel("Date Sold");
         JLabel artistLabel4 = new JLabel("Artist");
         JLabel customerLabel4 = new JLabel("Customer");
+        JLabel purchasePriceLabel4 = new JLabel("Purchase Price (RM)");
+        JLabel sellingPriceLabel4 = new JLabel("Selling Price (RM)");
         
         final JTextField artworkTitleTF4 = new JTextField(50);
         final JTextField datePurchasedTF4 = new JTextField(50);
         final JTextField dateSoldTF4 = new JTextField(50);
         final JTextField artistTF4 = new JTextField(50);
         final JTextField customerTF4 = new JTextField(50);
+        final JTextField purchasePriceTF4 = new JTextField(50);
+        final JTextField sellingPriceTF4 = new JTextField(50);
         
-        artworkTitleTF3.setEnabled(false);
-        datePurchasedTF3.setEnabled(false);
+        artworkTitleTF4.setEnabled(false);
+        datePurchasedTF4.setEnabled(false);
         dateSoldTF4.setEnabled(false);
-        artistTF3.setEnabled(false);
+        artistTF4.setEnabled(false);
+        customerTF4.setEnabled(false);
+        purchasePriceTF4.setEnabled(false);
+        sellingPriceTF4.setEnabled(false);
         
         JPanel artworkTitlePanel4 = new JPanel();
         JPanel datePurchasedPanel4 = new JPanel();
         JPanel dateSoldPanel4 = new JPanel();
         JPanel artistPanel4 = new JPanel();
         JPanel customerPanel4 = new JPanel();
+        JPanel purchasePricePanel4 = new JPanel();
+        JPanel sellingPricePanel4 = new JPanel();
         //JPanel archiveInventoryEmptyPanel = new JPanel();
         
         artworkTitlePanel4.setLayout(new GridLayout(1, 2));
@@ -1300,14 +1567,24 @@ public class LatteGalleryClient extends JFrame{
         customerPanel4.add(customerLabel4);
         customerPanel4.add(customerTF4);
         
+        purchasePricePanel4.setLayout(new GridLayout(1, 2));
+        purchasePricePanel4.add(purchasePriceLabel4);
+        purchasePricePanel4.add(purchasePriceTF4);
+        
+        sellingPricePanel4.setLayout(new GridLayout(1, 2));
+        sellingPricePanel4.add(sellingPriceLabel4);
+        sellingPricePanel4.add(sellingPriceTF4);
+        
         JPanel archiveInventoryJP = new JPanel();
-        archiveInventoryJP.setLayout(new GridLayout(6, 1, 10, 10));
+        archiveInventoryJP.setLayout(new GridLayout(8, 1, 10, 10));
         archiveInventoryJP.add(artworkTitlePanel4);
         archiveInventoryJP.add(datePurchasedPanel4);
         archiveInventoryJP.add(dateSoldPanel4);
+        archiveInventoryJP.add(purchasePricePanel4);
         archiveInventoryJP.add(artistPanel4);
         archiveInventoryJP.add(customerPanel4);
-        archiveInventoryJP.add(availableArtworkPurchase);
+        archiveInventoryJP.add(sellingPricePanel4);
+        //archiveInventoryJP.add(availableArtworkPurchase);
         
         archiveInventory.add(archiveInventoryJP, BorderLayout.CENTER);
         
@@ -1323,11 +1600,14 @@ public class LatteGalleryClient extends JFrame{
                         dateSoldTF4.setText(archiveArtworkDateSoldArr[archiveArtworkTitleList.getSelectedIndex()]);
                         artistTF4.setText(archiveArtworkArtistArr[archiveArtworkTitleList.getSelectedIndex()]);
                         customerTF4.setText(archiveArtworkCustomerArr[archiveArtworkTitleList.getSelectedIndex()]);
+                        purchasePriceTF4.setText(archiveArtworkPurchasePriceArr[archiveArtworkTitleList.getSelectedIndex()]);
+                        sellingPriceTF4.setText(archiveArtworkSellingPriceArr[archiveArtworkTitleList.getSelectedIndex()]);
                         System.out.println(archiveArtworkTitleList.getSelectedIndex());
                     }
                 }
             }
         });
+
         //end of archiveInventory
         
         
@@ -1339,6 +1619,7 @@ public class LatteGalleryClient extends JFrame{
            public void actionPerformed(ActionEvent e){
                customerOperations("updateCustomer", customerListArr[customerNameList.getSelectedIndex()], phoneNoTF.getText().trim(), addressTA.getText().trim(), "null", artistPrefCB.getSelectedItem().toString().trim(), nameTF.getText().trim());
                initializeCustomerList();
+               updateCustomerComboBox();
                editCustomerDialog.setVisible(false);
            }
         });
@@ -1377,6 +1658,7 @@ public class LatteGalleryClient extends JFrame{
            public void actionPerformed(ActionEvent e){
                artistOperations("updateArtist", artistListArr[artistNameList.getSelectedIndex()], specialtyTF.getText().trim(), aliveCB.getSelectedItem().toString().trim(), priceRangeTF.getText().trim(), artistNameTF.getText().trim());
                initializeArtistList();
+               updateArtistComboBox();
                editArtistDialog.setVisible(false);
            }
         });
@@ -1412,7 +1694,19 @@ public class LatteGalleryClient extends JFrame{
         yes5.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               artworkOperations("updateArtwork", artworkListArr[artworkTitleList.getSelectedIndex()], datePurchasedTF.getText().trim(), dateSoldTF.getText().trim(), artistCB.getSelectedItem().toString(), artworkTitleTF.getText().trim());
+               String dateSold;
+               String sellingPrice;
+               if(dateSoldTF.getText().trim().equals("")){
+                   dateSold = "null";
+               }else{
+                   dateSold = dateSoldTF.getText().trim();
+               }
+               if(sellingPriceTF.getText().trim().equals("")){
+                   sellingPrice = "null";
+               }else{
+                   sellingPrice = sellingPriceTF.getText().trim();
+               }
+               artworkOperations("updateArtwork", artworkListArr[artworkTitleList.getSelectedIndex()], datePurchasedTF.getText().trim(), dateSold, purchasePriceTF.getText().trim(), sellingPrice, artistCB.getSelectedItem().toString(), artworkTitleTF.getText().trim());
                initializeArtworkList();
                editArtworkDialog.setVisible(false);
            }
@@ -1424,15 +1718,17 @@ public class LatteGalleryClient extends JFrame{
                editArtworkDialog.setVisible(false);
            }
         });
-        //delete artist dialog buttons
+        //delete artwork dialog buttons
         yes6.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
-               artworkOperations("deleteArtwork", artworkListArr[artworkTitleList.getSelectedIndex()], datePurchasedTF.getText().trim(), dateSoldTF.getText().trim(), artistCB.getSelectedItem().toString(), artworkTitleTF.getText().trim());
+               artworkOperations("deleteArtwork", artworkListArr[artworkTitleList.getSelectedIndex()], datePurchasedTF.getText().trim(), dateSoldTF.getText().trim(), purchasePriceTF.getText().trim(), "", artistCB.getSelectedItem().toString(), artworkTitleTF.getText().trim());
                initializeArtworkList();
                artworkTitleTF.setText("");
                datePurchasedTF.setText("");
+               purchasePriceTF.setText("");
                dateSoldTF.setText("");
+               sellingPriceTF.setText("");
                artistCB.setSelectedItem(0);
                deleteArtworkDialog.setVisible(false);
            }
@@ -1445,7 +1741,7 @@ public class LatteGalleryClient extends JFrame{
            }
         });
         
-        //delete artist dialog buttons
+        //purchase artwork dialog buttons
         yes7.addActionListener(new ActionListener(){
            @Override
            public void actionPerformed(ActionEvent e){
@@ -1457,12 +1753,14 @@ public class LatteGalleryClient extends JFrame{
                    artPurchasesString += "/" + availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()];
                }
                
-               purchaseArtwork(customerCB.getSelectedItem().toString(), artPurchasesString,availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()], new SimpleDateFormat("dd/MM/yyyy").format(new Date(System.currentTimeMillis())));
+               purchaseArtwork(customerCB.getSelectedItem().toString(), artPurchasesString, availableArtworkTitleArr[availableArtworkTitleList.getSelectedIndex()], new SimpleDateFormat("dd/MM/yyyy").format(new Date(System.currentTimeMillis())), sellingPriceTF3.getText().trim());
                initializeCustomerList();
                initializeArtworkList();
                artworkTitleTF3.setText("");
                datePurchasedTF3.setText("");
                artistTF3.setText("");
+               purchasePriceTF3.setText("");
+               sellingPriceTF3.setText("");
                customerCB.setSelectedItem(-1);
                availableArtworkPurchaseDialog.setVisible(false);
            }
@@ -1698,6 +1996,8 @@ public class LatteGalleryClient extends JFrame{
             String artworkList = fromServer.readUTF();
             String datePurchasedList = fromServer.readUTF();
             String dateSoldList = fromServer.readUTF();
+            String purchasePriceList = fromServer.readUTF();
+            String sellingPriceList = fromServer.readUTF();
             String artistList = fromServer.readUTF();
             
             artworkListArr = artworkList.split("\\|");
@@ -1708,10 +2008,13 @@ public class LatteGalleryClient extends JFrame{
             
             datePurchasedArr = datePurchasedList.split("\\|");
             dateSoldArr = dateSoldList.split("\\|");
+            purchasePriceArr = purchasePriceList.split("\\|");
+            sellingPriceArr = sellingPriceList.split("\\|");
             artistArr = artistList.split("\\|");
-            
+            //System.out.println("initializeArtowkrList");
             getAvailableArtwork();
             getSoldArtwork();
+            
         } catch (IOException ex) {
             Logger.getLogger(LatteGalleryClient.class.getName()).log(Level.SEVERE, null, ex);
         }catch(Exception e){
@@ -1748,12 +2051,14 @@ public class LatteGalleryClient extends JFrame{
         }
     }
     
-    public void artworkOperations(String operation, String title, String datePurchased, String dateSold, String artist, String newTitle){
+    public void artworkOperations(String operation, String title, String datePurchased, String dateSold, String purchasePrice, String sellingPrice, String artist, String newTitle){
         try{
             toServer.writeUTF(operation);
             toServer.writeUTF(title);
             toServer.writeUTF(datePurchased);
             toServer.writeUTF(dateSold);
+            toServer.writeUTF(purchasePrice);
+            toServer.writeUTF(sellingPrice);
             toServer.writeUTF(artist);
             toServer.writeUTF(newTitle);
             toServer.flush();
@@ -1762,13 +2067,14 @@ public class LatteGalleryClient extends JFrame{
         }
     }
     
-    public void purchaseArtwork(String name, String artPurchases, String title, String dateSold){
+    public void purchaseArtwork(String name, String artPurchases, String title, String dateSold, String sellingPrice){
         try{
             toServer.writeUTF("purchaseArtwork");
             toServer.writeUTF(name);
             toServer.writeUTF(artPurchases);
             toServer.writeUTF(title);
             toServer.writeUTF(dateSold);
+            toServer.writeUTF(sellingPrice);
             toServer.flush();
         }catch(IOException e){
             
@@ -1821,6 +2127,8 @@ public class LatteGalleryClient extends JFrame{
             String artistArtworkTitleList = fromServer.readUTF();
             String artistArtworkDatePurchasedList = fromServer.readUTF();
             String artistArtworkDateSoldList = fromServer.readUTF();
+            String artistArtworkPurchasePriceList = fromServer.readUTF();
+            String artistArtworksSellingPriceList = fromServer.readUTF();
             
             artistArtworkTitleArr = artistArtworkTitleList.split("\\|");
             
@@ -1841,6 +2149,8 @@ public class LatteGalleryClient extends JFrame{
 
             artistArtworkDatePurchasedArr = artistArtworkDatePurchasedList.split("\\|");
             artistArtworkDateSoldArr = artistArtworkDateSoldList.split("\\|");
+            artistArtworksPurchasePriceArr = artistArtworkPurchasePriceList.split("\\|");
+            artistArtworksSellingPriceArr = artistArtworksSellingPriceList.split("\\|");
             
         } catch (IOException ex) {
             Logger.getLogger(LatteGalleryClient.class.getName()).log(Level.SEVERE, null, ex);
@@ -1855,6 +2165,7 @@ public class LatteGalleryClient extends JFrame{
             //get available artwork
             String titleList = fromServer.readUTF();
             String datePurchasedList = fromServer.readUTF();
+            String purchasePriceList = fromServer.readUTF();
             String artistList = fromServer.readUTF();
             
             availableArtworkTitleArr = titleList.split("\\|");
@@ -1864,6 +2175,7 @@ public class LatteGalleryClient extends JFrame{
             }
             
             availableArtworkDatePurchasedArr = datePurchasedList.split("\\|");
+            availableArtworkPurchasePriceArr = purchasePriceList.split("\\|");
             availableArtworkArtistArr = artistList.split("\\|");
             
         } catch (IOException ex) {
@@ -1879,6 +2191,8 @@ public class LatteGalleryClient extends JFrame{
             String titleList = fromServer.readUTF();
             String datePurchasedList = fromServer.readUTF();
             String dateSoldList = fromServer.readUTF();
+            String purchasePriceList = fromServer.readUTF();
+            String sellingPriceList = fromServer.readUTF();
             String artistList = fromServer.readUTF();
             
             archiveArtworkTitleArr = titleList.split("\\|");
@@ -1896,6 +2210,8 @@ public class LatteGalleryClient extends JFrame{
             
             archiveArtworkDatePurchasedArr = datePurchasedList.split("\\|");
             archiveArtworkDateSoldArr = dateSoldList.split("\\|");
+            archiveArtworkPurchasePriceArr = purchasePriceList.split("\\|");
+            archiveArtworkSellingPriceArr = sellingPriceList.split("\\|");
             archiveArtworkArtistArr = artistList.split("\\|");
             
         } catch (IOException ex) {
@@ -1944,6 +2260,31 @@ public class LatteGalleryClient extends JFrame{
             specialtyArr = specialtyList.split("\\|");
             aliveArr = aliveList.split("\\|");
             priceRangeArr = priceRange.split("\\|");
+        } catch (IOException ex) {
+            Logger.getLogger(LatteGalleryClient.class.getName()).log(Level.SEVERE, null, ex);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    public void refreshArtworkList(){
+        try {
+            toServer.writeUTF("refreshArtworkList");
+            toServer.flush();
+            
+            //Get artist list
+            String titleList = fromServer.readUTF();
+            String datePurchasedList = fromServer.readUTF();
+            String artistList = fromServer.readUTF();
+            
+            availableArtworkTitleArr = titleList.split("\\|");
+            availableArtworkTitleListModel.removeAllElements();
+            for(int i = 0; i < availableArtworkTitleArr.length; i++){
+                availableArtworkTitleListModel.addElement(availableArtworkTitleArr[i]);
+            }
+            
+            availableArtworkDatePurchasedArr = datePurchasedList.split("\\|");
+            availableArtworkArtistArr = artistList.split("\\|");
         } catch (IOException ex) {
             Logger.getLogger(LatteGalleryClient.class.getName()).log(Level.SEVERE, null, ex);
         }catch(Exception e){
