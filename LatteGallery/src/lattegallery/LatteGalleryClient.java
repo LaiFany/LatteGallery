@@ -1198,6 +1198,7 @@ public class LatteGalleryClient extends JFrame{
                    warningDialog.setVisible(true);
                }else{
                    for(int i = 0; i < artworkListArr.length; i++){
+                       if(i != artworkTitleList.getSelectedIndex()){
                         if(artworkListArr[i].equals(artworkTitleTF.getText().trim())){
                             warningMessageLabel.setText("The artwork title " + "'" + artworkTitleTF.getText().trim() + "' is already registered. Please try another title.");
                             warningDialog.pack();
@@ -1213,6 +1214,7 @@ public class LatteGalleryClient extends JFrame{
                             editArtworkDialog.setLocationRelativeTo(null);
                         }
                     }
+                   }
                }
                
            }
