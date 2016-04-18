@@ -1378,6 +1378,7 @@ public class LatteGalleryClient extends JFrame{
         artworkTitleTF3.setEnabled(false);
         datePurchasedTF3.setEnabled(false);
         artistTF3.setEnabled(false);
+        purchasePriceTF3.setEnabled(false);
         
         final JButton availableArtworkPurchase = new JButton("Purchase Artwork");
         
